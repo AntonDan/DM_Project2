@@ -99,8 +99,9 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         for item in k_neighbors:
             temp = list()
             for neighbor in item:
-                k_neighbors_actual.append(self.X_[neighbor[0]])
-            k_neighbors_actual.append(temp)
+                temp.append( (self.y_[neighbor[0]], neighbor[1], self.X_[neighbor[0]]) )
+            if len(temp) > 0:
+                k_neighbors_actual.append(temp)
 
         return k_neighbors_actual
 
