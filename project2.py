@@ -1,5 +1,6 @@
 from scipy.stats import mode
 from sklearn.metrics.pairwise import euclidean_distances
+from sklearn.neighbors import DistanceMetric
 from sklearn.feature_extraction.text import CountVectorizer
 
 import pandas as pd
@@ -9,6 +10,22 @@ from numpy import array, zeros, argmin, inf, equal, ndim
 from scipy.spatial.distance import cdist
 from sklearn.neighbors import NearestNeighbors
 import numpy as np
+
+import math
+
+def haversine(X, Y):
+    lat1, lon1 = X 
+    lat2, lon2 = Y
+    radius = 6371 # km
+
+    dlat = math.radians(lat2-lat1)
+    dlon = math.radians(lon2-lon1)
+    a = math.sin(dlat/2) * math.sin(dlat/2) + math.cos(math.radians(lat1)) \
+        * math.cos(math.radians(lat2)) * math.sin(dlon/2) * math.sin(dlon/2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    d = radius * c
+
+    return d
 
 def dtw(x, y, dist=euclidean_distances):
     """
@@ -25,6 +42,7 @@ def dtw(x, y, dist=euclidean_distances):
     D0[0, 1:] = inf
     D0[1:, 0] = inf
     D1 = dist(x, y)
+    print D1
     C = D1.copy()
     for i in range(r):
         for j in range(c):
@@ -59,7 +77,7 @@ def fastdtw(x, y, dist):
     D0[0, 1:] = inf
     D0[1:, 0] = inf
     D1 = D0[1:, 1:]
-    D0[1:,1:] = cdist(x,y,dist)
+    D0[1:,1:] = cdist(x,y,metric='seuclidean')
     C = D1.copy()
     for i in range(r):
         for j in range(c):
@@ -88,43 +106,39 @@ def _traceback(D):
         q.insert(0, j)
     return array(p), array(q)
 
-x = [[0, 0], [0, 1], [1, 1], [1, 2], [2, 2], [4, 3], [2, 3], [1, 1], [2, 2], [0, 1], [2, 2], [4, 3], [2, 3], [1, 1]]
-y = [[1, 0], [1, 1], [1, 1], [2, 1], [4, 3], [4, 3], [2, 3], [3, 1], [1, 2], [1, 0], [2, 1], [4, 3]]
+# MAIN
+trainSet = pd.read_csv(
+	'train_set2.csv', # replace with the correct path
+	converters={"Trajectory": literal_eval},
+	index_col='tripId'
+)
 
-dist, cost, acc, path = dtw(x, y, euclidean_distances)
-# trainSet = pd.read_csv(
-# 	'train_set2.csv', # replace with the correct path
-# 	converters={"Trajectory": literal_eval},
-# 	index_col='tripId'
-# )
+trajectories = trainSet["Trajectory"]
+journeyPatternIds = trainSet['journeyPatternId']
+samples = []
+for i in range(0, len(trajectories.keys())):
+    index = trajectories.keys()[i]                                # Get a random applicable index on the dataset
+    samples.append([])
+    for t, lon, lat in trajectories[index]:                         # Fill them with the desired trip info
+        samples[i].append([lon, lat])
 
-# trajectories = trainSet["Trajectory"]
-# journeyPatternIds = trainSet['journeyPatternId']
-# samples = []
-# for i in range(0, len(trajectories.keys())):
-#     index = trajectories.keys()[i]                                # Get a random applicable index on the dataset
-#     samples.append([])
-#     for t, lon, lat in trajectories[index]:                         # Fill them with the desired trip info
-#         samples[i].append([lon, lat])
-#     samples[i] = [samples[i]]
-# test=samples[0]
-# samples=samples[1:3]
-# samples=np.array(samples)
-# print samples
-# samples.shape
 
-# dist, cost, acc, path = dtw(samples[0], test[0], euclidean_distances)
-# neigh = NearestNeighbors(n_neighbors=1, metric=dtw)
-# neigh.fit(samples)
-# print(neigh.kneighbors(test)) 
+##### TESTING #####
+test=[samples[0]]
+samples=samples[1:]
+
+for i in range(0,len(samples)):  
+   dist, cost, acc, path = fastdtw(samples[i], test[0], haversine)
+   print dist
+
 # vizualize
-from matplotlib import pyplot as plt
-plt.imshow(cost.T, origin='lower', cmap=plt.cm.Reds, interpolation='nearest')
-plt.plot(path[0], path[1], '-o') # relation
-plt.xticks(range(len(x)), x)
-plt.yticks(range(len(y)), y)
-plt.xlabel('x')
-plt.ylabel('y')
-plt.axis('tight')
-plt.title('Minimum distance: {}'.format(dist))
-plt.show()
+# from matplotlib import pyplot as plt
+# plt.imshow(cost.T, origin='lower', cmap=plt.cm.Reds, interpolation='nearest')
+# plt.plot(path[0], path[1], '-o') # relation
+# plt.xticks(range(len(x)), x)
+# plt.yticks(range(len(y)), y)
+# plt.xlabel('x')
+# plt.ylabel('y')
+# plt.axis('tight')
+# plt.title('Minimum distance: {}'.format(dist))
+# plt.show()
