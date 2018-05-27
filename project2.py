@@ -27,34 +27,6 @@ def haversine(X, Y):
 
     return d
 
-def dtw(x, y, dist=euclidean_distances):
-    """
-    Computes Dynamic Time Warping (DTW) of two sequences.
-    :param array x: N1*M array
-    :param array y: N2*M array 
-    :param func dist: distance used as cost measure
-    Returns the minimum distance, the cost matrix, the accumulated cost matrix, and the wrap path.
-    """
-    assert len(x)
-    assert len(y)
-    r, c = len(x), len(y)
-    D0 = zeros((r + 1, c + 1))
-    D0[0, 1:] = inf
-    D0[1:, 0] = inf
-    D1 = dist(x, y)
-    print D1
-    C = D1.copy()
-    for i in range(r):
-        for j in range(c):
-            D1[i, j] += min(D0[i, j], D0[i, j+1], D0[i+1, j])
-    if len(x)==1:
-        path = zeros(len(y)), range(len(y))
-    elif len(y) == 1:
-        path = range(len(x)), zeros(len(x))
-    else:
-        path = _traceback(D0)
-    return D1[-1, -1] / sum(D1.shape), C, D1, path
-
 def fastdtw(x, y, dist):
     """
     Computes Dynamic Time Warping (DTW) of two sequences in a faster way.
@@ -77,7 +49,7 @@ def fastdtw(x, y, dist):
     D0[0, 1:] = inf
     D0[1:, 0] = inf
     D1 = D0[1:, 1:]
-    D0[1:,1:] = cdist(x,y,metric='seuclidean')
+    D0[1:,1:] = cdist(x,y,dist)
     C = D1.copy()
     for i in range(r):
         for j in range(c):
@@ -88,7 +60,27 @@ def fastdtw(x, y, dist):
         path = range(len(x)), zeros(len(x))
     else:
         path = _traceback(D0)
-    return D1[-1, -1] / sum(D1.shape), C, D1, path
+        return D1[-1, -1] / sum(D1.shape), C, D1, path
+
+def lcs_length(a, b):
+    table = [[([],0)] * (len(b) + 1) for _ in xrange(len(a) + 1)]
+    for i, ca in enumerate(a, 1):
+        for j, cb in enumerate(b, 1):
+            if ca == cb:
+                path, length = table[i - 1][j - 1]
+                if len(path) > 0:
+                    length += haversine(path[-1], ca) 
+                path += [ca]
+                table[i][j] = (path, length)
+            else:
+                patha, lengtha = table[i][j - 1]
+                pathb, lengthb = table[i - 1][j]
+                if lengtha > lengthb:
+                    table[i][j] = (patha, lengtha)
+                else:
+                    table[i][j] = (pathb, lengthb)
+    path, length = table[-1][-1]
+    return path, length
 
 def _traceback(D):
     i, j = array(D.shape) - 2
@@ -108,7 +100,7 @@ def _traceback(D):
 
 # MAIN
 trainSet = pd.read_csv(
-	'train_set2.csv', # replace with the correct path
+	'train_set.csv', # replace with the correct path
 	converters={"Trajectory": literal_eval},
 	index_col='tripId'
 )
@@ -125,12 +117,13 @@ for i in range(0, len(trajectories.keys())):
 
 ##### TESTING #####
 test=[samples[0]]
-samples=samples[1:]
+samples=samples[600:1000]
 
-for i in range(0,len(samples)):  
-   dist, cost, acc, path = fastdtw(samples[i], test[0], haversine)
-   print dist
-
+for i in range(0,len(samples)):
+    path, length = lcs_length(samples[i], test[0])
+    if (length > 0):
+        dist, cost, acc, path = fastdtw(samples[i], test[0], haversine)
+        print i , length, dist
 # vizualize
 # from matplotlib import pyplot as plt
 # plt.imshow(cost.T, origin='lower', cmap=plt.cm.Reds, interpolation='nearest')
