@@ -25,7 +25,7 @@ def haversine(X, Y):
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
     d = radius * c
 
-    return d
+    return d 
 
 def fastdtw(x, y, dist):
     """
@@ -66,12 +66,9 @@ def lcs_length(a, b):
     table = [[([],0)] * (len(b) + 1) for _ in xrange(len(a) + 1)]
     for i, ca in enumerate(a, 1):
         for j, cb in enumerate(b, 1):
-            if ca == cb:
+            if haversine(ca, cb) < 0.2:
                 path, length = table[i - 1][j - 1]
-                if len(path) > 0:
-                    length += haversine(path[-1], ca) 
-                path += [ca]
-                table[i][j] = (path, length)
+                table[i][j] = (path + [ca], length + 1)
             else:
                 patha, lengtha = table[i][j - 1]
                 pathb, lengthb = table[i - 1][j]
@@ -98,7 +95,15 @@ def _traceback(D):
         q.insert(0, j)
     return array(p), array(q)
 
+
+
 # MAIN
+testSet = pd.read_csv(
+	'test_set_a2.csv',
+	converters={"Trajectory": literal_eval},
+    delimiter='\t'    
+)
+
 trainSet = pd.read_csv(
 	'train_set.csv', # replace with the correct path
 	converters={"Trajectory": literal_eval},
@@ -107,23 +112,47 @@ trainSet = pd.read_csv(
 
 trajectories = trainSet["Trajectory"]
 journeyPatternIds = trainSet['journeyPatternId']
+
+test_trajectories = testSet["Trajectory"]
+
 samples = []
 for i in range(0, len(trajectories.keys())):
     index = trajectories.keys()[i]                                # Get a random applicable index on the dataset
     samples.append([])
     for t, lon, lat in trajectories[index]:                         # Fill them with the desired trip info
         samples[i].append([lon, lat])
+#samples=samples[1:100]
 
+test = []
+for i in range(0, len(test_trajectories.keys())):
+    index = test_trajectories.keys()[i]                                # Get a random applicable index on the dataset
+    test.append([])
+    for t, lon, lat in test_trajectories[index]:                         # Fill them with the desired trip info
+        test[i].append([lon, lat])
 
-##### TESTING #####
-test=[samples[0]]
-samples=samples[600:1000]
-
-for i in range(0,len(samples)):
-    path, length = lcs_length(samples[i], test[0])
-    if (length > 0):
-        dist, cost, acc, path = fastdtw(samples[i], test[0], haversine)
-        print i , length, dist
+for t in range(0, len(test)):
+    amount = 0
+    minimum = 0
+    top = []
+    test_index = 0
+    print ("Test " , t)
+    for i in range(0,len(samples)):
+        path, length = lcs_length(samples[i], test[t])
+        if (length > minimum):
+    #     dist, cost, acc, path = fastdtw(samples[i], test[0], haversine)
+            if (len(top) < 5):
+                top += [(trajectories.keys(), path, length)]
+            else:
+                for i in range(0, 5):
+                    _, _,   _length = top[i]
+                    if _length == minimum:
+                        top[i] = (trajectories.keys(), path, length)
+                        break
+                minimum = inf
+                for _, _, _length in top:
+                    if _length < minimum:
+                        minimum = _length
+    print top
 # vizualize
 # from matplotlib import pyplot as plt
 # plt.imshow(cost.T, origin='lower', cmap=plt.cm.Reds, interpolation='nearest')
