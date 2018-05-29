@@ -143,10 +143,10 @@ for t in range(0, len(test)):
             if (len(top) < 5):
                 top += [(trajectories.keys(), path, length)]
             else:
-                for i in range(0, 5):
-                    _, _,   _length = top[i]
+                for j in range(0, 5):
+                    _, _,   _length = top[j]
                     if _length == minimum:
-                        top[i] = (trajectories.keys(), path, length)
+                        top[j] = (trajectories.keys()[i], path, length)
                         break
                 minimum = inf
                 for _, _, _length in top:
