@@ -14,7 +14,7 @@ from sklearn.neighbors import DistanceMetric
 
 from sklearn.utils.estimator_checks import check_estimator
 
-# Our custom K-Nearest Neighbor implementation according to the scikit-learn standard
+# Our custom K-Nearest Neighbor implementation
 class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
 
     def __init__(self, n_neighbors=5, n_jobs=1):
@@ -22,9 +22,6 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         self.n_jobs = n_jobs
 
     def fit(self, X, y):
-        # Check that X and y have correct shape
-        # X = check_array(X, accept_sparse='csr')
-        # X, y = check_X_y(X, y, accept_sparse=True)
 
         # Store the classes seen during fit
         self.classes_ = unique_labels(y)
@@ -39,9 +36,6 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         # Check if fit had been called
         check_is_fitted(self, ['X_', 'y_'])
 
-        # Input validation
-        # X = check_array(X, accept_sparse='csr')
-
         predicted_labels = list()
 
         for qitem in X:
@@ -49,11 +43,12 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             for idx, fitem in enumerate(self.X_):
                 neighbors_distance.append( (idx, fastdtw(fitem, qitem, dist)) )
 
-            sorted_neighbors_distance = sorted(neighbors_distance, key=lambda neighbors_distance: neighbors_distance[1]) #, reverse = True)
+            sorted_neighbors_distance = sorted(neighbors_distance, key=lambda neighbors_distance: neighbors_distance[1])
             predicted_labels.append(self.majority_voting(list(itertools.islice(sorted_neighbors_distance, self.n_neighbors))))
 
         return np.array(predicted_labels)
 
+    # Majority voting mechanism with distance as weight
     def majority_voting(self, neighbors):
         majority_dict = dict()
 
@@ -70,12 +65,6 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
         # Check if fit had been called
         check_is_fitted(self, ['X_', 'y_'])
 
-        # watch out if this validation creates problems
-        # Input validation
-        # X = check_array(X, accept_sparse='csr')
-
-        # dist = DistanceMetric.get_metric('haversine')
-
         k_neighbors = list()
 
         for qitem in X:
@@ -83,7 +72,7 @@ class KNeighborsClassifier(BaseEstimator, ClassifierMixin):
             for idx, fitem in enumerate(self.X_):
                 neighbors_distance.append( (idx, fastdtw(fitem, qitem, dist)) )
 
-            sorted_neighbors_distance = sorted(neighbors_distance, key=lambda neighbors_distance: neighbors_distance[1]) #, reverse = True)
+            sorted_neighbors_distance = sorted(neighbors_distance, key=lambda neighbors_distance: neighbors_distance[1])
             k_neighbors.append(list(itertools.islice(sorted_neighbors_distance, n_neighbors)))
 
         k_neighbors_actual = list()

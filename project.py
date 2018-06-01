@@ -6,16 +6,15 @@ from random import randint
 
 colors = ['red', 'green', 'blue', 'black', 'yellow']
 
+# Read train set from disk
 trainSet = pd.read_csv(
-	'../train_set.csv', # replace with the correct path
+	'../train_set.csv',
 	converters={"Trajectory": literal_eval},
 	index_col='tripId'
 )
 
 trajectories = trainSet["Trajectory"]
 journeyPatternIds = trainSet['journeyPatternId']
-
-# first part
 
 visited = list()
 for i, color in zip(range(5), colors):
